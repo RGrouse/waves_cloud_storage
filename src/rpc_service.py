@@ -1,6 +1,6 @@
 import zerorpc
 import logging
-import blockchain_interaction as BlIn
+from src import blockchain_interaction as BlIn
 import sys
 import os.path
 import datetime
@@ -11,22 +11,21 @@ NODE = "https://testnode1.wavesnodes.com"
 ADDRESS = "tcp://127.0.0.1:4242"
 LOG_FORMAT = '%(levelname)s:\t%(asctime)-15s %(message)s'
 LOG_LEVEL = logging.DEBUG
-account = None
 
 class RPC_service(object):
-    def signIn(self, seed):
-        global account
+    blockm = None
+    keym = None
 
-        account = BlIn.BlockChainMaster(NODE, seed)
+    def signIn(self, seed):
+        self.bm = BlIn.BlockChainMaster(NODE, seed)
 
         data = {
-            "address": account.Account.address
+            "address": self.bm.Account.address
         }
         return data
-    def pushFileToBlockchain(self, filePath):
-        global account
 
-        uploadInfo = account.uploadFile(filePath)
+    def pushFileToBlockchain(self, filePath):
+        uploadInfo = self.bm.uploadFile(filePath)
 
         fileName = os.path.basename(filePath)
 
@@ -45,14 +44,13 @@ class RPC_service(object):
 
     def downloadAndSaveFileFromBlockchain(self, keystorePath):
         try:
-            global account
             keystore = open(keystorePath, "rb")
             data = pickle.load(keystore)
             keystore.close()
 
             with open(timestamp()+' '+data['fileName'], 'wb') as f:
                 for tx in data['uploadInfo']:
-                    filePiece = account.downloadFile(tx['id'], tx['key'])
+                    filePiece = self.bm.downloadFile(tx['id'], tx['key'])
                     f.write(filePiece)
             return True
         except KeyboardInterrupt:
@@ -80,6 +78,8 @@ def timestamp():
     return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
 def _initLogger():
+    logging.getLogger("zerorpc").setLevel(logging.WARNING)
+
     root = logging.getLogger()
     root.setLevel(LOG_LEVEL)
 

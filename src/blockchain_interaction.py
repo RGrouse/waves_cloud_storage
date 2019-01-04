@@ -1,7 +1,7 @@
 import pywaves
 import hashlib
 import base64
-import encryption as encryption
+from src import encryption as encryption
 import logging
 
 KB_VAL = 16000

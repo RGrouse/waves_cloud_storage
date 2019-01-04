@@ -24,3 +24,6 @@
 
 #Electron-builder output
 /electron/dist_electron
+
+#App files
+*.keystore
