@@ -1,8 +1,8 @@
 import zerorpc
 import logging
 from src import blockchain_interaction as BlIn
+from src import keystore_interaction as KIn
 import sys
-import os.path
 import datetime
 import pickle
 import time
@@ -17,30 +17,23 @@ class RPC_service(object):
     keym = None
 
     def signIn(self, seed):
-        self.bm = BlIn.BlockChainMaster(NODE, seed)
+        self.blockm = BlIn.BlockChainMaster(NODE, seed)
+        self.keym = KIn.KeystoreMaster()
 
         data = {
-            "address": self.bm.Account.address
+            "address": self.blockm.Account.address
         }
         return data
 
-    def pushFileToBlockchain(self, filePath):
-        uploadInfo = self.bm.uploadFile(filePath)
+    def getUploadHistory(self):
+        return self.keym.getListOfUploadedFiles()
 
-        fileName = os.path.basename(filePath)
-
-        logging.info("Upload %s: %s pieces, fee %s",
-                     fileName, len(uploadInfo), sum(map(lambda x: x['fee'], uploadInfo)))
-        data = {
-            'fileName': fileName,
-            'uploadInfo': uploadInfo
-        }
-
-        pickle_out = open(timestamp(), "wb")
-        pickle.dump(data, pickle_out)
-        pickle_out.close()
-
-        return data
+    def uploadFileToBlockchain(self, filePath):
+        if not self.keym.isFileCollide(filePath):
+            uploadFileInfo = self.blockm.uploadFile(filePath)
+            self.keym.addUploadedFileToKeystore(uploadFileInfo['fileName'], uploadFileInfo['uploadFilePiecesInfo'])
+        else:
+            raise Exception('Upload with same filename', filePath)
 
     def downloadAndSaveFileFromBlockchain(self, keystorePath):
         try:
@@ -50,7 +43,7 @@ class RPC_service(object):
 
             with open(timestamp()+' '+data['fileName'], 'wb') as f:
                 for tx in data['uploadInfo']:
-                    filePiece = self.bm.downloadFile(tx['id'], tx['key'])
+                    filePiece = self.blockm.downloadFile(tx['id'], tx['key'])
                     f.write(filePiece)
             return True
         except KeyboardInterrupt:
@@ -79,6 +72,8 @@ def timestamp():
 
 def _initLogger():
     logging.getLogger("zerorpc").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     root = logging.getLogger()
     root.setLevel(LOG_LEVEL)

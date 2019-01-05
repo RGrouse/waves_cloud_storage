@@ -6,36 +6,39 @@ import logging
 
 KEYSTORE_PREFIX = ''
 KEYSTORE_SUFFIX = '.keystore'
+DEFAULT_PATH = './'
+
+
+class KeystoreBox:
+    def __init__(self, Path_, KeystoreData_):
+        self.Path = Path_
+        self.KeystoreData = KeystoreData_
 
 class KeystoreMaster:
-    keystore = None
+    keystoreBox = None
 
     def __init__(self, KeystorePath_=None):
         if KeystorePath_ is not None:
             k = self.tryParseKeystoreFile(KeystorePath_)
             if k is not None:
-                self.keystore = k
+                self.keystoreBox = KeystoreBox(KeystorePath_, k)
 
-        if self.keystore is None:
-            k = self.searchForKeystore()
-            if k is None:
-                self.keystore = self.createKeystore()
+        if self.keystoreBox is None:
+            kbox = self.searchForKeystore()
+            if kbox is None:
+                self.keystoreBox = self.createKeystore()
             else:
-                self.keystore = k
+                self.keystoreBox = kbox
 
-    class Keystore:
-        def __init__(self, Path_, Data):
-            self.Path = Path_
-            self.Data = Data
-
-    def searchForKeystore(self, search_dir="./"):
+    def searchForKeystore(self, search_dir=DEFAULT_PATH):
         try:
             for filename in os.listdir(search_dir):
                 if filename.endswith(KEYSTORE_SUFFIX):
-                    keystore = self.tryParseKeystoreFile(search_dir+filename)
-                    if keystore is not None:
-                        logging.debug('Keystore successfully found %s', keystore.Path)
-                        return keystore
+                    k = self.tryParseKeystoreFile(search_dir+filename)
+                    if k is not None:
+                        kbox = KeystoreBox(search_dir+filename, k)
+                        logging.debug('Keystore successfully found %s', kbox.Path)
+                        return kbox
             return None
         except:
             logging.debug('Keystore search exception')
@@ -43,14 +46,13 @@ class KeystoreMaster:
 
     def createKeystore(self, keystore_path=None):
         if keystore_path is None:
-            keystore_path = "./" + self.createKeystoreName()
+            keystore_path = DEFAULT_PATH + self.createKeystoreName()
         else:
             keystore_path += KEYSTORE_SUFFIX
 
         keystore_data = {
             'created': self.timestamp(),
-            'uploaded_files': [],
-            'upload_info': []
+            'uploads_info': {}
         }
 
         try:
@@ -59,7 +61,7 @@ class KeystoreMaster:
             pickle_out.close()
 
             logging.debug('Keystore created successfully %s', keystore_path)
-            return self.Keystore(keystore_path, keystore_data)
+            return KeystoreBox(keystore_path, keystore_data)
         except:
             logging.debug('Keystore creation exception')
             return None
@@ -70,17 +72,48 @@ class KeystoreMaster:
             data = pickle.load(file)
             file.close()
 
-            if data['created'] is None:
+            if data.get('created') is None:
                 logging.debug('Validation is not successful')
                 return None
             logging.debug('Validation is successful')
-            return self.Keystore(filePath, data)
+            return data
         except:
             logging.debug('Parsing exception')
             return None
 
+    def getListOfUploadedFiles(self):
+        return list(self.keystoreBox.KeystoreData['uploads_info'].keys())
+
     def createKeystoreName(self):
         return KEYSTORE_PREFIX + self.timestamp() + KEYSTORE_SUFFIX
+
+    def isFilenameCollide(self, filename):
+        if self.keystoreBox.KeystoreData['uploads_info'].get(filename) is None:
+            return False
+        else:
+            return True
+
+    def isFileCollide(self, filePath):
+        fileName = os.path.basename(filePath)
+        return self.isFilenameCollide(fileName)
+
+    def addUploadedFileToKeystore(self, filename, upload_info):
+        if self.keystoreBox is not None:
+            if not self.isFilenameCollide(filename):
+                self.keystoreBox.KeystoreData['uploads_info'][filename] = upload_info
+                self.saveChangesToKeystore()
+            else:
+                raise Exception('Upload with same filename', filename)
+        else:
+            raise Exception('Keystore file is not present')
+
+    def saveChangesToKeystore(self):
+        keystoreFile = open(self.keystoreBox.Path, "wb")
+        pickle.dump(self.keystoreBox.KeystoreData, keystoreFile)
+        keystoreFile.close()
+
+    def catKeystoreFile(self):
+        print(self.tryParseKeystoreFile(self.keystoreBox.Path))
 
     @staticmethod
     def timestamp():
