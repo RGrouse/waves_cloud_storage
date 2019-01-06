@@ -84,6 +84,9 @@ class KeystoreMaster:
     def getListOfUploadedFiles(self):
         return list(self.keystoreBox.KeystoreData['uploads_info'].keys())
 
+    def getUploadPiecesInfo(self, fileName):
+        return self.keystoreBox.KeystoreData['uploads_info'].get(fileName)
+
     def createKeystoreName(self):
         return KEYSTORE_PREFIX + self.timestamp() + KEYSTORE_SUFFIX
 

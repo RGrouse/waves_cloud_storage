@@ -24,9 +24,9 @@ document.getElementById('uploadToBlockchain').onclick = function(){
 };
 
 document.getElementById('downloadFromBlockchain').onclick = function() {
-  var keystoreFilepath = document.getElementById('keystoreFile').files[0].path;
+  var fileName = document.getElementById('fileNameToDownload').value;
 
-  client.invoke("downloadAndSaveFileFromBlockchain", keystoreFilepath, function(error, res, more) {
+  client.invoke("downloadAndSaveFileFromBlockchain", fileName, function(error, res, more) {
         doLog(res)
   });
 }

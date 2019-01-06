@@ -35,20 +35,15 @@ class RPC_service(object):
         else:
             raise Exception('Upload with same filename', filePath)
 
-    def downloadAndSaveFileFromBlockchain(self, keystorePath):
+    def downloadAndSaveFileFromBlockchain(self, fileName):
+        uploadPiecesInfo = self.keym.getUploadPiecesInfo(fileName)
+        filePathToSave = "./"+timestamp() + ' ' + fileName
         try:
-            keystore = open(keystorePath, "rb")
-            data = pickle.load(keystore)
-            keystore.close()
-
-            with open(timestamp()+' '+data['fileName'], 'wb') as f:
-                for tx in data['uploadInfo']:
-                    filePiece = self.blockm.downloadFile(tx['id'], tx['key'])
-                    f.write(filePiece)
+            self.blockm.downloadFile(uploadPiecesInfo, filePathToSave)
             return True
-        except KeyboardInterrupt:
-            return
-        except:
+        except KeyboardInterrupt as ke:
+            raise ke
+        except Exception:
             return False
 
     def echo(self, message):

@@ -25,7 +25,7 @@ class BlockChainMaster:
             bytes = file.read()
 
             logging.debug("File to upload: %s\tActual file: %s...\tType: %s\tLength: %s",
-                          filePath, (lambda b: b[0:] if len(b) < 32 else b[0:32])(bytes), type(bytes), len(bytes))
+                          filePath, (lambda b: b[0:] if len(b) < 64 else b[0:64])(bytes), type(bytes), len(bytes))
 
             uploadFilePiecesInfo = self.uploadFileBytes(bytes)
 
@@ -67,7 +67,7 @@ class BlockChainMaster:
 
     def uploadSizedPiece(self, file_bytes_slice):
         logging.debug("Actual piece: %s...\tType: %s\tLength: %s",
-                      (lambda b: b[0:] if len(b) < 32 else b[0:32])(file_bytes_slice), type(file_bytes_slice), len(file_bytes_slice))
+                      (lambda b: b[0:] if len(b) < 64 else b[0:64])(file_bytes_slice), type(file_bytes_slice), len(file_bytes_slice))
 
         # generating hash
         hexDig = self._generateHexDig(file_bytes_slice)
@@ -78,7 +78,7 @@ class BlockChainMaster:
         encrypted_str = encrypted_bytes.decode('ASCII')
 
         logging.debug("Encrypted: %s...\tType: %s\tLength: %s",
-                      (lambda b: b[0:] if len(b) < 32 else b[0:32])(encrypted_str), type(encrypted_str), len(encrypted_str))
+                      (lambda b: b[0:] if len(b) < 64 else b[0:64])(encrypted_str), type(encrypted_str), len(encrypted_str))
 
         data = [{
             'type': 'binary',
@@ -94,7 +94,15 @@ class BlockChainMaster:
         }
         return pieceUploadInfo
 
-    def downloadFile(self, transactionId, encryptionKey):
+    def downloadFile(self, uploadPiecesInfo, filPathToSave):
+        logging.debug("Start downloading\t--------------------------------- >>")
+        with open(filPathToSave, 'wb') as f:
+            for tx in uploadPiecesInfo:
+                filePiece = self.downloadPieceFile(tx['id'], tx['key'])
+                f.write(filePiece)
+        logging.debug("End downloading\t<< ---------------------------------")
+
+    def downloadPieceFile(self, transactionId, encryptionKey):
         b64_data_str = self._getDataByTxID(transactionId)
         b64_data_bytes = bytes(b64_data_str, 'ASCII')
 
@@ -111,7 +119,8 @@ class BlockChainMaster:
 
         b64_data = b64_data_with_prefix[7:]
 
-        logging.debug("Data from txid - %s: %s", transactionId, b64_data)
+        logging.debug("Data from txid %s: %s...", transactionId,
+                      (lambda b: b[0:] if len(b) < 32 else b[0:64])(b64_data_with_prefix))
 
         return b64_data
 
