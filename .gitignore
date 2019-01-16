@@ -27,3 +27,4 @@
 
 #App files
 *.keystore
+*.pyc

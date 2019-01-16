@@ -1,10 +1,11 @@
 import zerorpc
 import logging
-from src import blockchain_interaction as BlIn
-from src import keystore_interaction as KIn
+import blockchain_interaction as BlIn
+import keystore_interaction as KIn
+import signal
+import gevent
 import sys
 import datetime
-import pickle
 import time
 
 NODE = "https://testnode1.wavesnodes.com"
@@ -50,16 +51,18 @@ class RPC_service(object):
         return message
 
 def main():
-    _initLogger()
+    print(sys.path)
 
-    s = zerorpc.Server(RPC_service())
     try:
+        _initLogger()
+        s = zerorpc.Server(RPC_service())
         s.bind(ADDRESS)
+        gevent.signal(signal.SIGINT, s.stop)
         logging.info("Starting RPC service on %s", ADDRESS)
         s.run()
-    except KeyboardInterrupt:
-        logging.info('Keyboard interrupt received, shutting down the service')
-        s.close()
+    except Exception as e:
+        logging.error(e)
+
 
 def timestamp():
     ts = time.time()

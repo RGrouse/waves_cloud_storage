@@ -55,33 +55,24 @@ class KeystoreMaster:
             'uploads_info': {}
         }
 
-        try:
-            pickle_out = open(keystore_path, "wb")
-            pickle.dump(keystore_data, pickle_out)
-            pickle_out.close()
-
+        if self.marshal(keystore_path, keystore_data):
             logging.debug('Keystore created successfully %s', keystore_path)
             return KeystoreBox(keystore_path, keystore_data)
-        except:
+        else:
             logging.debug('Keystore creation exception')
             return None
 
     def tryParseKeystoreFile(self, filePath):
-        try:
-            file = open(filePath, "rb")
-            data = pickle.load(file)
-            file.close()
+            data = self.unmarshal(filePath)
 
-            if data.get('created') is None:
+            if data is None or data.get('created') is None:
                 logging.debug('Validation is not successful')
                 return None
             logging.debug('Validation is successful')
             return data
-        except:
-            logging.debug('Parsing exception')
-            return None
 
     def getListOfUploadedFiles(self):
+        print(list(self.keystoreBox.KeystoreData['uploads_info'].keys()))
         return list(self.keystoreBox.KeystoreData['uploads_info'].keys())
 
     def getUploadPiecesInfo(self, fileName):
@@ -104,21 +95,37 @@ class KeystoreMaster:
         if self.keystoreBox is not None:
             if not self.isFilenameCollide(filename):
                 self.keystoreBox.KeystoreData['uploads_info'][filename] = upload_info
-                self.saveChangesToKeystore()
+                return self.marshal(self.keystoreBox.Path, self.keystoreBox.KeystoreData)
             else:
-                raise Exception('Upload with same filename', filename)
+                logging.debug('Upload with same filename %s', filename)
+                return False
         else:
-            raise Exception('Keystore file is not present')
-
-    def saveChangesToKeystore(self):
-        keystoreFile = open(self.keystoreBox.Path, "wb")
-        pickle.dump(self.keystoreBox.KeystoreData, keystoreFile)
-        keystoreFile.close()
+            logging.debug('Keystore file is not present')
+            return False
 
     def catKeystoreFile(self):
         print(self.tryParseKeystoreFile(self.keystoreBox.Path))
 
-    @staticmethod
-    def timestamp():
+    def marshal(self, filePath, data):
+        try:
+            file = open(filePath, "wb")
+            pickle.dump(data, file)
+            file.close()
+            return True
+        except:
+            logging.debug('Marshal exception')
+            return False
+
+    def unmarshal(self, filePath):
+        try:
+            file = open(filePath, "rb")
+            data = pickle.load(file)
+            file.close()
+            return data
+        except:
+            logging.debug('Unmarshal exception')
+            return None
+
+    def timestamp(self):
             ts = time.time()
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')

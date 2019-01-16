@@ -1,7 +1,7 @@
 import pywaves
 import hashlib
 import base64
-from src import encryption as encryption
+import encryption as encryption
 import logging
 import os.path
 
