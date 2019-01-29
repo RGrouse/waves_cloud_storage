@@ -18,9 +18,13 @@
   "license": "CC0-1.0",
 
   "dependencies": {
-    "zerorpc": "fyears/zerorpc-node"
   },
   "devDependencies": {
-    "electron": "4.0.0"
+    "electron": "4.0.0",
+    "@types/node": "^10.12.18",
+    "@waves/signature-adapter": "^4.0.1",
+    "@waves/waves-transactions": "^3.0.19",
+    "axios": "^0.18.0",
+    "typescript": "^3.2.4"
   }
 }
