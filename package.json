@@ -1,21 +1,21 @@
 {
-  "name": "electron-quick-start",
+  "name": "waves-cloud-storage",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
-  "main": "main.js",
+  "description": "Blockchain storage",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/BIS-team/waves_cloud_storage",
   "keywords": [
     "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "waves",
+    "blockchain",
+    "storage",
+    "cloud"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "BIS-team",
+  "license": "AGPL-3.0",
 
   "dependencies": {
   },
