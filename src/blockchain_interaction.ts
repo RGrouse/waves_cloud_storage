@@ -95,6 +95,7 @@ export class BlockChainMaster {
                 return Promise.resolve(Buffer.from(data, 'base64')); //todo проверку совпадает ли ключ
             })
     }
+
     getTransactionInfoUrl(txId: string): string {
         return this.node+'/transactions/info/'+txId;
     }

@@ -13,7 +13,7 @@
     <input type="file" id="fileToUpload">
     <button id="uploadToBlockchain" type="button">send to blockchain</button>
     <hr>
-    <label for="fileNameToDownload">Keystore of file: </label>
+    <label for="fileNameToDownload">Keystore file: </label>
     <input id="fileNameToDownload" type="text" placeholder="filename from history">
     <button id="downloadFromBlockchain" type="button">download file</button>
     <hr>
@@ -21,7 +21,8 @@
     <button id="getUploadHistory" type="button">get history</button>
     <br>
     <textarea id="uploadHistoryTextArea" rows="2" cols="50"></textarea>
-
+    <br>
+    <button id="signOut" type="button">sign out</button>
     <script>
       require('../src/renderer.js')
     </script>
