@@ -1,4 +1,6 @@
-import {BlockChainMaster} from "./blockchain_interaction";
+import {BlockChainMaster, IUploadedFile} from "./blockchain_interaction";
+
+const TMP_PASS = "MY PASSWORD";
 
 namespace Root {
     let bm: BlockChainMaster;
@@ -21,13 +23,17 @@ namespace Root {
         return Promise.resolve(true);
     }
 
-    export function upload(filePath: string | null): Promise<any> {
+    export function upload(filePath: string | null, password:string): Promise<any> {
+        if(!signedIn) return Promise.reject(Error("Not signed in"));
         if (filePath){
-            return Promise.resolve(filePath)
+            return bm.uploadFile(filePath, password);
         } else return Promise.reject(Error("File is not selected"));
     }
 
-    export function download(): Promise<any> {
+    export function download(uploadedFileInfo: IUploadedFile | null, password:string): Promise<any> {
+        if (!uploadedFileInfo) return Promise.reject(Error("Nothing to download"));
+
+        bm.downloadFile(uploadedFileInfo, password);
         return Promise.resolve('download placeholder');
     }
 
@@ -78,13 +84,13 @@ namespace Dispatcher {
         // @ts-ignore
         let filePath: string | null = files[0] ? files[0].path : null;
 
-        Root.upload(filePath)
+        Root.upload(filePath, TMP_PASS)
             .then(data => Presenter.upload(data))
             .catch(e => Presenter.error(e));
     });
 
     downloadBtn.addEventListener("click", (e: Event) => {
-        Root.download()
+        Root.download(null, TMP_PASS)
             .then(data => Presenter.download(data))
             .catch(e => Presenter.error(e));
     });

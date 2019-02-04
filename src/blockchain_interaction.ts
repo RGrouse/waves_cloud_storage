@@ -2,8 +2,9 @@ import { SeedAdapter } from '@waves/signature-adapter';
 import { config, MAINNET_BYTE, TESTNET_BYTE } from '@waves/signature-generator';
 import { data, broadcast } from '@waves/waves-transactions';
 import { basename } from "path";
-import { readFileSync } from "fs";
+import {appendFileSync, readFileSync} from "fs";
 import axios from 'axios';
+import {Encryption} from "./encryption";
 
 export interface IUploadedFile {
     fileName: string;
@@ -16,6 +17,7 @@ export interface IUploadedChunk {
 }
 
 const CHUNK_SIZE = 16384;
+const WAVES_DATATX_KEY = "Clex";
 
 export class BlockChainMaster {
     account:SeedAdapter;
@@ -38,13 +40,15 @@ export class BlockChainMaster {
         return this.account.getAddress()
     }
 
-    uploadFile(filePath: string):Promise<IUploadedFile> {
+    uploadFile(filePath: string, password: string):Promise<IUploadedFile> {
         let file: Buffer = readFileSync(filePath);
+
+        let enc = new Encryption(password);
+
+        let promises: Promise<IUploadedChunk>[] = [];
 
         let i: number,
             k: number;
-
-        let promises: Promise<IUploadedChunk>[] = [];
 
         for (i = 0, k = 0; i < file.byteLength; i+=CHUNK_SIZE, k++){
             let pos: number = k;
@@ -54,13 +58,13 @@ export class BlockChainMaster {
                 fileChunk = file.slice(i, i+CHUNK_SIZE);
             else fileChunk = file.slice(i);
 
-            console.log(fileChunk);
+            let encChunkInfo = enc.getEncrypted(fileChunk);
 
-            promises.push(this.sendDataTransaction(fileChunk).then(txInfo => {
+            promises.push(this.sendDataTransaction(encChunkInfo.encryptedData).then(txInfo => {
                 return {
                     chunkPosition: pos,
                     txId: txInfo.id,
-                    encryptionSalt: ''
+                    encryptionSalt: encChunkInfo.salt
                 }
             }));
         }
@@ -73,10 +77,34 @@ export class BlockChainMaster {
         })
     }
 
+    downloadFile(uploadedFileInfo: IUploadedFile, password: string) {
+        let filePathToSave: string = this.getTimestamp()+" "+uploadedFileInfo.fileName;
+        let enc: Encryption = new Encryption(password);
+
+        let promises = [];
+
+        for(let chunkUploadInfo of uploadedFileInfo.uploadedChunks) {
+            let salt: string = chunkUploadInfo.encryptionSalt;
+            promises[chunkUploadInfo.chunkPosition] =
+                this.getDataTransactionValue(chunkUploadInfo.txId, WAVES_DATATX_KEY).then(
+                    encryptedChunk => {
+                        return enc.getDecrypted(encryptedChunk, salt);
+                    }
+                );
+        }
+
+        Promise.all(promises).then( chunks => {
+            for(let chunk of chunks){
+                appendFileSync(filePathToSave, chunk);
+            }
+        });
+    }
+
+    //todo сделать обработку на нехватку средств
     sendDataTransaction(dataToSend: Buffer):Promise<any> {
         const params = {
             data: [
-                { key: 'binaryVal', value:  dataToSend},
+                { key: WAVES_DATATX_KEY, value:  dataToSend},
             ],
         };
 
@@ -86,7 +114,7 @@ export class BlockChainMaster {
         });
     }
 
-    //todo сделать обработку на нехватку средств
+    //todo сделать проверку подтверждена ли транзакция
     getDataTransactionValue(txId: string, key: string):Promise<Buffer> {
         let url: string = this.getTransactionInfoUrl(txId);
         return axios.get(url)
@@ -98,5 +126,18 @@ export class BlockChainMaster {
 
     getTransactionInfoUrl(txId: string): string {
         return this.node+'/transactions/info/'+txId;
+    }
+
+    getTimestamp():string {
+        let currentDate = new Date();
+
+        let h = currentDate.getHours();
+        let m = currentDate.getMinutes();
+        let s = currentDate.getSeconds();
+        let d = currentDate.getDate();
+        let M = currentDate.getMonth() + 1;
+        let y = currentDate.getFullYear();
+
+        return d + "-" + M + "-" + y + " " + h + ":" + m + ":" + s;
     }
 }

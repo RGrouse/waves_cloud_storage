@@ -2,10 +2,10 @@ import { randomBytes, createCipheriv, Cipher, scryptSync, createDecipheriv, Deci
 
 interface IEncryptedInfo {
     salt: string;
-    encryptedData: string;
+    encryptedData: Buffer;
 }
 
-class Encryption {
+export class Encryption {
     private readonly password: string;
     private readonly algorithm: string;
     private readonly keylen: number;
@@ -28,14 +28,12 @@ class Encryption {
         let encrypted: Buffer = Buffer.concat([iv, cipher.update(chunk), cipher.final()]);
 
         return {
-            encryptedData: encrypted.toString('base64'),
+            encryptedData: encrypted,
             salt: salt
         }
     }
-    getDecrypted(data:string, salt: string):Buffer {
+    getDecrypted(chunk: Buffer, salt: string):Buffer {
         let key:Buffer = scryptSync(this.password, salt, this.keylen);
-
-        let chunk: Buffer = Buffer.from(data, 'base64');
 
         let iv: Buffer = chunk.slice(0, 16);
 
