@@ -77,7 +77,7 @@ export class BlockChainMaster {
         })
     }
 
-    downloadFile(uploadedFileInfo: IUploadedFile, password: string) {
+    downloadFile(uploadedFileInfo: IUploadedFile, password: string): Promise<string> {
         let filePathToSave: string = this.getTimestamp()+" "+uploadedFileInfo.fileName;
         let enc: Encryption = new Encryption(password);
 
@@ -93,10 +93,11 @@ export class BlockChainMaster {
                 );
         }
 
-        Promise.all(promises).then( chunks => {
+        return Promise.all(promises).then( chunks => {
             for(let chunk of chunks){
                 appendFileSync(filePathToSave, chunk);
             }
+            return filePathToSave;
         });
     }
 

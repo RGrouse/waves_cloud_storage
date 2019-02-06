@@ -1,15 +1,19 @@
 import {BlockChainMaster, IUploadedFile} from "./blockchain_interaction";
+import {KeystoreMaster} from "./keystore_interaction";
 
 const TMP_PASS = "MY PASSWORD";
 
 namespace Root {
     let bm: BlockChainMaster;
+    let km: KeystoreMaster;
+
     let signedIn: boolean = false;
 
     export function signIn(seed: string): Promise<any> {
         if(!signedIn) {
             try {
                 bm = new BlockChainMaster(seed);
+                km = new KeystoreMaster();
                 signedIn = true;
                 return bm.getAddress();
             } catch (e) {
@@ -23,22 +27,30 @@ namespace Root {
         return Promise.resolve(true);
     }
 
-    export function upload(filePath: string | null, password:string): Promise<any> {
+    export function upload(filePath: string | null, password:string): Promise<IUploadedFile> {
         if(!signedIn) return Promise.reject(Error("Not signed in"));
         if (filePath){
-            return bm.uploadFile(filePath, password);
+            return bm.uploadFile(filePath, password).then(uploadedFile => {
+                km.addUploadedFileToKeystore(uploadedFile);
+                return uploadedFile;
+            });
         } else return Promise.reject(Error("File is not selected"));
     }
 
-    export function download(uploadedFileInfo: IUploadedFile | null, password:string): Promise<any> {
-        if (!uploadedFileInfo) return Promise.reject(Error("Nothing to download"));
+    export function download(fileName: string | null, password:string): Promise<string> {
+        if(!signedIn) return Promise.reject(Error("Not signed in"));
+        if (!fileName) return Promise.reject(Error("Nothing to download"));
 
-        bm.downloadFile(uploadedFileInfo, password);
-        return Promise.resolve('download placeholder');
+        let info = km.getUploadedFileInfo(fileName);
+
+        if(info) return bm.downloadFile(info, password);
+        else return Promise.reject(Error("Selected file is not found"));
     }
 
-    export function getHistory(): Promise<any> {
-        return Promise.resolve('getHistory placeholder');
+    export function getHistory(): Promise<string[]> {
+        if(!signedIn) return Promise.reject(Error("Not signed in"));
+        let filenames: string[] = km.getUploadHistory();
+        return Promise.resolve(filenames);
     }
 }
 
@@ -49,14 +61,25 @@ namespace Presenter {
     export function signOut(signOutInfo: any) {
         console.log('signOut '+signOutInfo)
     }
-    export function upload(uploadInfo: any) {
-        console.log('upload '+uploadInfo);
+    export function upload(uploadInfo: IUploadedFile) {
+        console.log('upload '+uploadInfo.fileName);
     }
-    export function download(downloadInfo: any) {
+    export function download(downloadInfo: string) {
         console.log('download '+downloadInfo);
     }
-    export function showHistory(historyInfo: any) {
-        console.log('getHistory '+historyInfo);
+    export function showHistory(historyInfo: string[]) {
+        let select = Dispatcher.getInputElementById('uploadHistory');
+        //Clear all options
+        while (select.hasChildNodes()) {
+            select.removeChild(select.firstChild!);
+        }
+        //Append upload history options
+        for (let item of historyInfo){
+            let opt = document.createElement('option');
+            opt.value = item;
+            opt.innerHTML = item;
+            select.appendChild(opt);
+        }
     }
     export function error(err: Error) {
         console.error(err)
@@ -64,11 +87,11 @@ namespace Presenter {
 }
 
 namespace Dispatcher {
-    let signInBtn = getElementById("signIn");
-    let signOutBtn = getElementById("signOut");
-    let uploadBtn = getElementById("uploadToBlockchain");
-    let downloadBtn = getElementById("downloadFromBlockchain");
-    let getHistoryBtn = getElementById("getUploadHistory");
+    let signInBtn = getHTMLElementById("signIn");
+    let signOutBtn = getHTMLElementById("signOut");
+    let uploadBtn = getHTMLElementById("uploadToBlockchain");
+    let downloadBtn = getHTMLElementById("downloadFromBlockchain");
+    let getHistoryBtn = getHTMLElementById("getUploadHistory");
 
     signInBtn.addEventListener("click", (e: Event) => {
         let seed: string = getInputElementById('seedInputField').value;
@@ -83,14 +106,16 @@ namespace Dispatcher {
         //Electron adds a full path property to File objects
         // @ts-ignore
         let filePath: string | null = files[0] ? files[0].path : null;
-
-        Root.upload(filePath, TMP_PASS)
+        let passwordElement = getInputElementById("passwordForUpload");
+        Root.upload(filePath, passwordElement.value)
             .then(data => Presenter.upload(data))
             .catch(e => Presenter.error(e));
     });
 
     downloadBtn.addEventListener("click", (e: Event) => {
-        Root.download(null, TMP_PASS)
+        let element = getInputElementById("uploadHistory");
+        let passwordElement = getInputElementById("passwordForDownload");
+        Root.download(element.value, passwordElement.value)
             .then(data => Presenter.download(data))
             .catch(e => Presenter.error(e));
     });
@@ -107,10 +132,10 @@ namespace Dispatcher {
             .catch(e => Presenter.error(e));
     });
 
-    function getInputElementById(id: string): HTMLInputElement {
+    export function getInputElementById(id: string): HTMLInputElement {
         return <HTMLInputElement>document.getElementById(id)!;
     }
-    function getElementById(id: string): HTMLElement {
+    export function getHTMLElementById(id: string): HTMLElement {
         return document.getElementById(id)!;
     }
 }

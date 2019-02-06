@@ -5,24 +5,29 @@
     <title>Clex</title>
   </head>
   <body>
-    <label for="seedInputField">Seed of waves account: </label>
-    <input id="seedInputField" type="text" placeholder="your seed">
-    <button id="signIn" type="button">sign in</button>
+    <label for="seedInputField">Seed от Waves аккаунта: </label>
+    <input id="seedInputField" type="text" placeholder="ваш seed">
+    <button id="signIn" type="button">войти</button>
     <hr>
-    <label for="fileToUpload">File to upload: </label>
+    <label for="fileToUpload">Файл для загрузки: </label>
     <input type="file" id="fileToUpload">
-    <button id="uploadToBlockchain" type="button">send to blockchain</button>
-    <hr>
-    <label for="fileNameToDownload">Keystore file: </label>
-    <input id="fileNameToDownload" type="text" placeholder="filename from history">
-    <button id="downloadFromBlockchain" type="button">download file</button>
-    <hr>
-    <label for="getUploadHistory">Get upload history: </label>
-    <button id="getUploadHistory" type="button">get history</button>
+    <button id="uploadToBlockchain" type="button">Отправить в блокчейн</button>
     <br>
-    <textarea id="uploadHistoryTextArea" rows="2" cols="50"></textarea>
+    <label for="passwordForUpload">Вы можете добавить пароль для файла, чтобы даже если keystore файл попадет в руки злоумышленника он не смог загрузить ваш файл: </label>
+    <input type="text" id="passwordForUpload" placeholder="ваш пароль">
+    <hr>
+    <label for="getUploadHistory">Загрузить историю загрузок: </label>
+    <button id="getUploadHistory" type="button">загрузить</button>
     <br>
-    <button id="signOut" type="button">sign out</button>
+    <label for="uploadHistory">Выберите файл для скачивания: </label>
+    <select id="uploadHistory"></select>
+    <br>
+    <label for="passwordForDownload">Если вы устанавливали пароль для файла: </label>
+    <input type="text" id="passwordForDownload" placeholder="ваш пароль">
+    <br>
+    <button id="downloadFromBlockchain" type="button">скачать</button>
+    <hr>
+    <button id="signOut" type="button">выйти</button>
     <script>
       require('../src/renderer.js')
     </script>
