@@ -1,5 +1,6 @@
 import {IUploadedFile} from "./blockchain_interaction";
 import {readdirSync, readFileSync, writeFileSync} from "fs";
+import {sep} from "path";
 
 export interface IKeystoreFile {
     filePath: string;
@@ -13,7 +14,7 @@ export interface IKeystoreData {
 
 const KEYSTORE_PREFIX = '';
 const KEYSTORE_SUFFIX = '.keystore';
-const DEFAULT_PATH = './';
+const DEFAULT_PATH = '.'+sep;
 const CURRENT_KEYSTORE_VERSION = 0;
 
 export class KeystoreMaster {
