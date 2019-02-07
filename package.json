@@ -16,15 +16,14 @@
   ],
   "author": "BIS-team",
   "license": "AGPL-3.0",
-
-  "dependencies": {
-  },
   "devDependencies": {
-    "electron": "4.0.0",
     "@types/node": "^10.12.18",
+    "@types/url-join": "^4.0.0",
     "@waves/signature-adapter": "^4.0.1",
     "@waves/waves-transactions": "^3.0.19",
     "axios": "^0.18.0",
-    "typescript": "^3.2.4"
+    "electron": "4.0.0",
+    "typescript": "^3.2.4",
+    "url-join": "^4.0.0"
   }
 }
