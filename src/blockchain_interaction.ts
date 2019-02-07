@@ -5,6 +5,7 @@ import { basename } from "path";
 import {appendFileSync, readFileSync} from "fs";
 import axios from 'axios';
 import {Encryption} from "./encryption";
+import Utils from "./utils";
 
 export interface IUploadedFile {
     fileName: string;
@@ -18,15 +19,16 @@ export interface IUploadedChunk {
 
 const CHUNK_SIZE = 16384;
 const WAVES_DATATX_KEY = "Clex";
+const TX_INFO_PATH = '/transactions/info/';
 
 export class BlockChainMaster {
-    account:SeedAdapter;
+    account: SeedAdapter;
     node = 'https://testnode1.wavesnodes.com';
 
-    constructor(seed:string, testnet:boolean = true) {
+    constructor(seed: string, testnet: boolean = true) {
         let networkByte: number;
 
-        if(testnet) networkByte = TESTNET_BYTE;
+        if (testnet) networkByte = TESTNET_BYTE;
         else networkByte = MAINNET_BYTE;
 
         config.set({
@@ -36,11 +38,11 @@ export class BlockChainMaster {
         this.account = new SeedAdapter(seed);
     }
 
-    getAddress():Promise<string> {
+    getAddress(): Promise<string> {
         return this.account.getAddress()
     }
 
-    uploadFile(filePath: string, password: string):Promise<IUploadedFile> {
+    uploadFile(filePath: string, password: string): Promise<IUploadedFile> {
         let file: Buffer = readFileSync(filePath);
 
         let enc = new Encryption(password);
@@ -50,12 +52,12 @@ export class BlockChainMaster {
         let i: number,
             k: number;
 
-        for (i = 0, k = 0; i < file.byteLength; i+=CHUNK_SIZE, k++){
+        for (i = 0, k = 0; i < file.byteLength; i += CHUNK_SIZE, k++) {
             let pos: number = k;
 
             let fileChunk: Buffer;
-            if(i+CHUNK_SIZE<file.byteLength)
-                fileChunk = file.slice(i, i+CHUNK_SIZE);
+            if (i + CHUNK_SIZE < file.byteLength)
+                fileChunk = file.slice(i, i + CHUNK_SIZE);
             else fileChunk = file.slice(i);
 
             let encChunkInfo = enc.getEncrypted(fileChunk);
@@ -69,7 +71,7 @@ export class BlockChainMaster {
             }));
         }
 
-        return Promise.all(promises).then( txInfos => {
+        return Promise.all(promises).then(txInfos => {
             return {
                 fileName: basename(filePath),
                 uploadedChunks: txInfos
@@ -77,13 +79,14 @@ export class BlockChainMaster {
         })
     }
 
-    downloadFile(uploadedFileInfo: IUploadedFile, password: string): Promise<string> {
-        let filePathToSave: string = this.getTimestamp()+" "+uploadedFileInfo.fileName;
+    downloadFile(uploadedFileInfo: IUploadedFile, password: string, savingFolder: string): Promise<string> {
+        let filename: string = Utils.getTimestamp() + " " + uploadedFileInfo.fileName;
+        let filePathToSave: string = Utils.concatFilePath(savingFolder, filename);
         let enc: Encryption = new Encryption(password);
 
         let promises = [];
 
-        for(let chunkUploadInfo of uploadedFileInfo.uploadedChunks) {
+        for (let chunkUploadInfo of uploadedFileInfo.uploadedChunks) {
             let salt: string = chunkUploadInfo.encryptionSalt;
             promises[chunkUploadInfo.chunkPosition] =
                 this.getDataTransactionValue(chunkUploadInfo.txId, WAVES_DATATX_KEY).then(
@@ -93,8 +96,8 @@ export class BlockChainMaster {
                 );
         }
 
-        return Promise.all(promises).then( chunks => {
-            for(let chunk of chunks){
+        return Promise.all(promises).then(chunks => {
+            for (let chunk of chunks) {
                 appendFileSync(filePathToSave, chunk);
             }
             return filePathToSave;
@@ -102,21 +105,21 @@ export class BlockChainMaster {
     }
 
     //todo сделать обработку на нехватку средств
-    sendDataTransaction(dataToSend: Buffer):Promise<any> {
+    sendDataTransaction(dataToSend: Buffer): Promise<any> {
         const params = {
             data: [
-                { key: WAVES_DATATX_KEY, value:  dataToSend},
+                {key: WAVES_DATATX_KEY, value: dataToSend},
             ],
         };
 
-        return this.account.getSeed().then((seed: string)=> {
+        return this.account.getSeed().then((seed: string) => {
             let signedDataTx = data(params, seed);
             return broadcast(signedDataTx, this.node)
         });
     }
 
     //todo сделать проверку подтверждена ли транзакция
-    getDataTransactionValue(txId: string, key: string):Promise<Buffer> {
+    getDataTransactionValue(txId: string, key: string): Promise<Buffer> {
         let url: string = this.getTransactionInfoUrl(txId);
         return axios.get(url)
             .then(response => {
@@ -126,19 +129,6 @@ export class BlockChainMaster {
     }
 
     getTransactionInfoUrl(txId: string): string {
-        return this.node+'/transactions/info/'+txId;
-    }
-
-    getTimestamp():string {
-        let currentDate = new Date();
-
-        let h = currentDate.getHours();
-        let m = currentDate.getMinutes();
-        let s = currentDate.getSeconds();
-        let d = currentDate.getDate();
-        let M = currentDate.getMonth() + 1;
-        let y = currentDate.getFullYear();
-
-        return d + "-" + M + "-" + y + " " + h + ":" + m + ":" + s;
+        return Utils.concatUrlPath(this.node, TX_INFO_PATH, txId);
     }
 }

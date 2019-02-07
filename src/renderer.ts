@@ -1,7 +1,5 @@
 import {BlockChainMaster, IUploadedFile} from "./blockchain_interaction";
-import {KeystoreMaster} from "./keystore_interaction";
-
-const TMP_PASS = "MY PASSWORD";
+import {DEFAULT_PATH, KeystoreMaster} from "./keystore_interaction";
 
 namespace Root {
     let bm: BlockChainMaster;
@@ -23,6 +21,7 @@ namespace Root {
     }
 
     export function signOut(): Promise<any>  {
+        if(!signedIn) return Promise.reject(Error("Not signed in"));
         signedIn = false;
         return Promise.resolve(true);
     }
@@ -43,7 +42,7 @@ namespace Root {
 
         let info = km.getUploadedFileInfo(fileName);
 
-        if(info) return bm.downloadFile(info, password);
+        if(info) return bm.downloadFile(info, password, DEFAULT_PATH);
         else return Promise.reject(Error("Selected file is not found"));
     }
 

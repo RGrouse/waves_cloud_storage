@@ -1,6 +1,7 @@
 import {IUploadedFile} from "./blockchain_interaction";
 import {readdirSync, readFileSync, writeFileSync} from "fs";
-import {sep} from "path";
+import { remote } from "electron";
+import Utils from "./utils";
 
 export interface IKeystoreFile {
     filePath: string;
@@ -12,9 +13,10 @@ export interface IKeystoreData {
     uploadedFiles: IUploadedFile[];
 }
 
+export const DEFAULT_PATH = remote.app.getAppPath();
+
 const KEYSTORE_PREFIX = '';
 const KEYSTORE_SUFFIX = '.keystore';
-const DEFAULT_PATH = '.'+sep;
 const CURRENT_KEYSTORE_VERSION = 0;
 
 export class KeystoreMaster {
@@ -22,6 +24,7 @@ export class KeystoreMaster {
 
     constructor(searchPath:string=DEFAULT_PATH) {
         let keystoreFilePath = this.searchForKeystore(searchPath);
+
         if(keystoreFilePath){
             let k: Buffer = readFileSync(keystoreFilePath);
             this.keystoreFile = {
@@ -37,7 +40,7 @@ export class KeystoreMaster {
     searchForKeystore(searchPath:string):string | null {
         let files: string[] = readdirSync(searchPath);
         for(let file of files) {
-            if(file.endsWith(KEYSTORE_SUFFIX)) return searchPath+file
+            if(file.endsWith(KEYSTORE_SUFFIX)) return Utils.concatFilePath(searchPath, file)
         }
         return null;
     }
@@ -49,12 +52,12 @@ export class KeystoreMaster {
         };
         let fileName: string = this.createKeystoreName();
         return {
-            filePath: creationFolder+fileName,
+            filePath: Utils.concatFilePath(creationFolder, fileName),
             data: keystoreData,
         }
     }
     createKeystoreName():string {
-        return KEYSTORE_PREFIX+this.getTimestamp()+KEYSTORE_SUFFIX;
+        return KEYSTORE_PREFIX+Utils.getTimestamp()+KEYSTORE_SUFFIX;
     }
     saveKeystoreFile() {
         let k: Buffer = this.marshal(this.keystoreFile.data);
@@ -81,18 +84,5 @@ export class KeystoreMaster {
     unmarshal(keytoreData: Buffer):IKeystoreData{
         let k: string = keytoreData.toString("UTF-8");
         return JSON.parse(k);
-    }
-    //todo сделать util класс для этого
-    getTimestamp():string {
-        let currentDate = new Date();
-
-        let h = currentDate.getHours();
-        let m = currentDate.getMinutes();
-        let s = currentDate.getSeconds();
-        let d = currentDate.getDate();
-        let M = currentDate.getMonth() + 1;
-        let y = currentDate.getFullYear();
-
-        return d + "-" + M + "-" + y + " " + h + ":" + m + ":" + s;
     }
 }
