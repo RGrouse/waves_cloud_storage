@@ -1,14 +1,17 @@
 import { SeedAdapter } from '@waves/signature-adapter';
 import { config, MAINNET_BYTE, TESTNET_BYTE } from '@waves/signature-generator';
 import { data, broadcast } from '@waves/waves-transactions';
-import { basename } from "path";
-import {appendFileSync, readFileSync} from "fs";
+import { basename } from 'path';
+import {appendFileSync, readFileSync} from 'fs';
 import axios from 'axios';
-import {Encryption} from "./encryption";
-import Utils from "./utils";
+import {Encryption} from './encryption';
+import Utils from './utils';
+import {randomBytes} from 'crypto';
 
 export interface IUploadedFile {
     fileName: string;
+    time: number;
+    uid?: string;
     uploadedChunks: IUploadedChunk[];
 }
 export interface IUploadedChunk {
@@ -18,8 +21,9 @@ export interface IUploadedChunk {
 }
 
 const CHUNK_SIZE = 16384;
-const WAVES_DATATX_KEY = "Clex";
-const TX_INFO_PATH = '/transactions/info/';
+const WAVES_DATATX_KEY = 'Clex';
+const TX_INFO_PATH = '/transactions/info/',
+    WAVES_BALANCE_INFO_PATH = '/addresses/balance/details/';
 
 export class BlockChainMaster {
     account: SeedAdapter;
@@ -28,8 +32,7 @@ export class BlockChainMaster {
     constructor(seed: string, testnet: boolean = true) {
         let networkByte: number;
 
-        if (testnet) networkByte = TESTNET_BYTE;
-        else networkByte = MAINNET_BYTE;
+        if (testnet) { networkByte = TESTNET_BYTE; } else { networkByte = MAINNET_BYTE; }
 
         config.set({
             networkByte: networkByte
@@ -39,7 +42,7 @@ export class BlockChainMaster {
     }
 
     getAddress(): Promise<string> {
-        return this.account.getAddress()
+        return this.account.getAddress();
     }
 
     uploadFile(filePath: string, password: string): Promise<IUploadedFile> {
@@ -56,9 +59,9 @@ export class BlockChainMaster {
             let pos: number = k;
 
             let fileChunk: Buffer;
-            if (i + CHUNK_SIZE < file.byteLength)
+            if (i + CHUNK_SIZE < file.byteLength) {
                 fileChunk = file.slice(i, i + CHUNK_SIZE);
-            else fileChunk = file.slice(i);
+            } else { fileChunk = file.slice(i); }
 
             let encChunkInfo = enc.getEncrypted(fileChunk);
 
@@ -67,20 +70,21 @@ export class BlockChainMaster {
                     chunkPosition: pos,
                     txId: txInfo.id,
                     encryptionSalt: encChunkInfo.salt
-                }
+                };
             }));
         }
 
         return Promise.all(promises).then(txInfos => {
             return {
                 fileName: basename(filePath),
+                time: Date.now(),
                 uploadedChunks: txInfos
-            }
-        })
+            };
+        });
     }
 
-    downloadFile(uploadedFileInfo: IUploadedFile, password: string, savingFolder: string): Promise<string> {
-        let filename: string = Utils.getTimestamp() + " " + uploadedFileInfo.fileName;
+    downloadFile(uploadedFileInfo: IUploadedFile, password: string, savingFolder: string = './'): Promise<string> {
+        let filename: string = Utils.getTimestamp() + ' ' + uploadedFileInfo.fileName;
         let filePathToSave: string = Utils.concatFilePath(savingFolder, filename);
         let enc: Encryption = new Encryption(password);
 
@@ -114,7 +118,7 @@ export class BlockChainMaster {
 
         return this.account.getSeed().then((seed: string) => {
             let signedDataTx = data(params, seed);
-            return broadcast(signedDataTx, this.node)
+            return broadcast(signedDataTx, this.node);
         });
     }
 
@@ -125,10 +129,22 @@ export class BlockChainMaster {
             .then(response => {
                 let data: string = response.data.data[0].value.substr(7);
                 return Promise.resolve(Buffer.from(data, 'base64')); //todo проверку совпадает ли ключ
-            })
+            });
     }
 
-    getTransactionInfoUrl(txId: string): string {
+    getWavesBalance(address: string): Promise<number> {
+        let url: string = this.getWavesBalanceInfoUrl(address);
+        return axios.get(url)
+            .then(response => {
+                return response.data.available / 10e7;
+            });
+    }
+
+    private getTransactionInfoUrl(txId: string): string {
         return Utils.concatUrlPath(this.node, TX_INFO_PATH, txId);
+    }
+
+    private getWavesBalanceInfoUrl(address: string): string {
+        return Utils.concatUrlPath(this.node, WAVES_BALANCE_INFO_PATH, address);
     }
 }

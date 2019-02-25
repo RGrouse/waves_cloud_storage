@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+</head>
+<body style="height: inherit; overflow-x: hidden; background-color: rgba(0,0,0,0); margin: 0" >
+  <div style="height: inherit;" id="App"></div>
+</body>
+
+<script>window.exports = module.exports</script>
+<script type="text/tsx">
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import {AppContainer} from 'react-hot-loader';
+import App from './react-components/App';
+
+let render = () => {
+  ReactDOM.render(<AppContainer><App/></AppContainer>, document.getElementById('App'));
+}
+
+render();
+if (module.hot) { module.hot.accept(render); }
+</script>
+</html>
