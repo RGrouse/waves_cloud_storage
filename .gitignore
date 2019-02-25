@@ -1,20 +1,19 @@
 .DS_Store
-/electron/node_modules
-/electron/dist
+/node_modules
+/dist
 
 # local env files
-/electron/.env.local
-/electron/.env.*.local
+/.env.local
+/.env.*.local
 
 # Log files
-/electron/npm-debug.log*
-/electron/yarn-debug.log*
-/electron/yarn-error.log*
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
 
 # Editor directories and files
 .idea
 .vscode
-/src/__pycache__
 
 *.suo
 *.ntvs*
@@ -23,8 +22,7 @@
 *.sw*
 
 #Electron-builder output
-/electron/dist_electron
+/dist_electron
 
 #App files
 *.keystore
-*.pyc
