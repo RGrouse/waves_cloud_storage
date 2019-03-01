@@ -62,7 +62,6 @@
     "electron-squirrel-startup": "^1.0.0",
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
-    "react-dropzone": "^8.1.0",
     "react-hot-loader": "^4.7.0",
     "tslib": "^1.9.3"
   },
@@ -79,7 +78,7 @@
     "electron-forge": "^5.2.4",
     "electron-prebuilt-compile": "4.0.0",
     "material-ui-dropzone": "^2.3.2",
-    "tslint": "^5.12.1",
+    "tslint": "^5.13.0",
     "typescript": "^3.3.3",
     "url-join": "^4.0.0"
   }
